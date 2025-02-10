@@ -1,13 +1,13 @@
 {
-	"name": "@as-cli/oxc-grep",
-	"version": "0.0.1",
-	"license": "MIT",
-	"compilerOptions": {
-		"lib": [
-			"deno.worker"
-		]
-	},
-	"exports": {
-		".": "./mod.ts"
-	}
+    "name": "@as-cli/oxc-grep",
+    "version": "0.0.1",
+    "license": "MIT",
+    "compilerOptions": {
+        "lib": [
+            "deno.worker"
+        ]
+    },
+    "exports": {
+        ".": "./mod.ts"
+    }
 }
