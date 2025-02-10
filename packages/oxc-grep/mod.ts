@@ -9,6 +9,9 @@ import type {
 } from './common.ts';
 
 const scriptName = 'oxc-grep';
+// this is needed because otherwise meow errors  the url isn't of type "file:""
+const meowUrl = new URL(import.meta.url);
+meowUrl.protocol = 'file:';
 
 const cli = meow(
     `
@@ -28,7 +31,7 @@ const cli = meow(
 		-h, --help                               Show this help
 	`,
     {
-        importMeta: import.meta,
+        importMeta: { ...import.meta, url: meowUrl.toString() },
         argv: Deno.args,
         pkg: {
             name: scriptName,
