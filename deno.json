@@ -1,0 +1,19 @@
+{
+	"version": "0.0.0",
+	"license": "MIT",
+	"workspace": {
+		"members": ["./packages/oxc-grep"]
+	},
+	"compilerOptions": {
+		"strict": true
+	},
+	"fmt": {
+		"semiColons": true,
+		"useTabs": true,
+		"indentWidth": 4,
+		"singleQuote": true
+	},
+	"lock": true,
+	"nodeModulesDir": "none",
+	"vendor": false
+}
