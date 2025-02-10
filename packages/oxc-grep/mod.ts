@@ -100,12 +100,20 @@ const { patterns, paths, exclude, context, concurrency, dir } = getCLIArgs(
     cli,
 );
 
+if (!patterns.length) {
+    console.error('No pattern provided');
+    Deno.exit(1);
+}
+
+const workerUrl = new URL('./worker.ts', import.meta.url);
+workerUrl.protocol = 'file:';
+
 const pool = new FixedThreadPool<
     FindASTMatchesOptions | ExpandGlobsOptions,
     FindASTMatchesOutput | ExpandGlobsOutput
 >(
     concurrency,
-    new URL('./worker.ts', import.meta.url),
+    workerUrl,
     { errorEventHandler: console.error },
 );
 

@@ -1,12 +1,45 @@
 {
   "version": "4",
   "specifiers": {
+    "jsr:@poolifier/poolifier-web-worker@0.4.31": "0.4.31",
+    "jsr:@std/async@1.0.10": "1.0.10",
+    "jsr:@std/bytes@^1.0.5": "1.0.5",
+    "jsr:@std/fs@1.0.11": "1.0.11",
+    "jsr:@std/io@0.225.2": "0.225.2",
+    "jsr:@std/path@1.0.8": "1.0.8",
+    "jsr:@std/path@^1.0.8": "1.0.8",
     "npm:@types/esquery@1.5.4": "1.5.4",
     "npm:@types/node@*": "22.10.2",
     "npm:ansi-styles@6.2.1": "6.2.1",
     "npm:esquery@1.6.0": "1.6.0",
     "npm:meow@13.2.0": "13.2.0",
     "npm:oxc-parser@0.48.2": "0.48.2"
+  },
+  "jsr": {
+    "@poolifier/poolifier-web-worker@0.4.31": {
+      "integrity": "651c799948657f3f777cc554a4301daa8c8d0745fe1d4b210ecaf7f0cc13e94e"
+    },
+    "@std/async@1.0.10": {
+      "integrity": "2ff1b1c7d33d1416159989b0f69e59ec7ee8cb58510df01e454def2108b3dbec"
+    },
+    "@std/bytes@1.0.5": {
+      "integrity": "4465dd739d7963d964c809202ebea6d5c6b8e3829ef25c6a224290fbb8a1021e"
+    },
+    "@std/fs@1.0.11": {
+      "integrity": "ba674672693340c5ebdd018b4fe1af46cb08741f42b4c538154e97d217b55bdd",
+      "dependencies": [
+        "jsr:@std/path@^1.0.8"
+      ]
+    },
+    "@std/io@0.225.2": {
+      "integrity": "3c740cd4ee4c082e6cfc86458f47e2ab7cb353dc6234d5e9b1f91a2de5f4d6c7",
+      "dependencies": [
+        "jsr:@std/bytes"
+      ]
+    },
+    "@std/path@1.0.8": {
+      "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    }
   },
   "npm": {
     "@oxc-parser/binding-darwin-arm64@0.48.2": {
