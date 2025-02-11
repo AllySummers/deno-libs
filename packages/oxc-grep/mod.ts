@@ -9,9 +9,6 @@ import type {
 } from './common.ts';
 
 const scriptName = 'oxc-grep';
-// this is needed because otherwise meow errors  the url isn't of type "file:""
-const meowUrl = new URL(import.meta.url);
-meowUrl.protocol = 'file:';
 
 const cli = meow(
     `
@@ -31,7 +28,8 @@ const cli = meow(
 		-h, --help                               Show this help
 	`,
     {
-        importMeta: { ...import.meta, url: meowUrl.toString() },
+        // the URL is overriden because if this is installed from a URL, meow will error that it must be a `file:` URL
+        importMeta: { ...import.meta, url: `file:///oxc-grep/mod.ts` },
         argv: Deno.args,
         pkg: {
             name: scriptName,
@@ -85,6 +83,11 @@ const getCLIArgs = (args: typeof cli) => {
         concurrency,
         dir,
     } = args.flags;
+
+    if (!pattern) {
+        console.error('No pattern provided');
+        Deno.exit(1);
+    }
 
     return {
         patterns: [pattern, ...patterns],
