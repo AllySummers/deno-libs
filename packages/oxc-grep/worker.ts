@@ -1,4 +1,5 @@
-import { parseAsync, type Span } from 'npm:oxc-parser@0.48.2';
+/// <reference types="npm:@oxc-project/types@0.49.0" />
+import { parseAsync, type Span } from 'npm:oxc-parser@0.49.0';
 import { basename, isGlob, relative, resolve } from 'jsr:@std/path@1.0.8';
 import { readAll } from 'jsr:@std/io@0.225.2/read-all';
 // @deno-types="npm:@types/esquery@1.5.4"
@@ -77,34 +78,47 @@ export const parseMatch = (
     root: string,
 ): ParsedMatch => {
     const lines = content.split('\n');
-    const matchLineIndex = content.slice(0, node.start).split('\n').length - 1;
-    const startLine = Math.max(0, matchLineIndex - before);
-    const endLine = Math.min(lines.length - 1, matchLineIndex + after);
-    const lineText = lines[matchLineIndex];
-    const lineStartOffset = content.lastIndexOf('\n', node.start - 1) + 1;
-    const matchColStart = node.start - lineStartOffset;
-    const matchColEnd = node.end - lineStartOffset;
-    const highlightedLine = lineText.slice(0, matchColStart) +
-        ansiStyles.red.open +
-        lineText.slice(matchColStart, matchColEnd) +
-        ansiStyles.red.close +
-        lineText.slice(matchColEnd);
-    const filenameColored = ansiStyles.magenta.open + relative(root, filename) +
-        ansiStyles.magenta.close;
-    let snippet = `${filenameColored}\n`;
-    for (let i = startLine; i <= endLine; i++) {
-        const marker = i === matchLineIndex ? ':' : '-';
-        const lineNumColored = ansiStyles.green.open + (i + 1) +
-            ansiStyles.green.close;
-        snippet +=
-            `${lineNumColored}${ansiStyles.reset.open}${marker}${ansiStyles.reset.close} ${
-                i === matchLineIndex ? highlightedLine : lines[i]
-            }\n`;
+    const startLineIndex = content.slice(0, node.start).split('\n').length - 1;
+    const endLineIndex = content.slice(0, node.end).split('\n').length - 1;
+    const startOffset = content.lastIndexOf('\n', node.start - 1) + 1;
+    const startCol = node.start - startOffset;
+    const endOffset = content.lastIndexOf('\n', node.end - 1) + 1;
+    const endCol = node.end - endOffset;
+    const contextStart = Math.max(0, startLineIndex - before);
+    const contextEnd = Math.min(lines.length - 1, endLineIndex + after);
+    let snippet = ansiStyles.magenta.open + relative(root, filename) +
+        ansiStyles.magenta.close + '\n';
+    for (let i = contextStart; i <= contextEnd; i++) {
+        const marker = i >= startLineIndex && i <= endLineIndex ? ':' : '-';
+        let lineContent = lines[i];
+        if (i === startLineIndex && i === endLineIndex) {
+            lineContent = lineContent.slice(0, startCol) +
+                ansiStyles.red.open +
+                lineContent.slice(startCol, endCol) +
+                ansiStyles.red.close +
+                lineContent.slice(endCol);
+        } else if (i === startLineIndex) {
+            lineContent = lineContent.slice(0, startCol) +
+                ansiStyles.red.open +
+                lineContent.slice(startCol) +
+                ansiStyles.red.close;
+        } else if (i === endLineIndex) {
+            lineContent = ansiStyles.red.open +
+                lineContent.slice(0, endCol) +
+                ansiStyles.red.close +
+                lineContent.slice(endCol);
+        } else if (i > startLineIndex && i < endLineIndex) {
+            lineContent = ansiStyles.red.open + lineContent +
+                ansiStyles.red.close;
+        }
+        snippet += ansiStyles.green.open + (i + 1) + ansiStyles.green.close +
+            ansiStyles.reset.open + marker + ansiStyles.reset.close + ' ' +
+            lineContent + '\n';
     }
     return {
         filename,
-        line: matchLineIndex + 1,
-        column: matchColStart,
+        line: startLineIndex + 1,
+        column: startCol,
         content: snippet.trim(),
     };
 };
@@ -133,8 +147,12 @@ const findASTMatchesTask: TaskAsyncFunction<
         const results: ParsedMatch[] = [];
 
         for (const pattern of patterns) {
-            // @ts-expect-error - we're using AST from a different parser so the types don't match
-            const matches = esquery.query(ast.program, pattern) as Span[];
+            const matches = esquery.match(
+                // @ts-ignore - this is an error if the types are available because we're using AST from a different parser so the types don't match,
+                // but we ignore it because sometimes the types will error in the deno language server
+                ast.program,
+                pattern,
+            ) as Span[];
 
             for (const match of matches) {
                 results.push(parseMatch(file, content, match, context, root));

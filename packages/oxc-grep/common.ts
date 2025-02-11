@@ -1,4 +1,7 @@
-import type { ParseResult } from 'npm:oxc-parser@0.48.2';
+/// <reference types="npm:@oxc-project/types@0.49.0" />
+import type { ParseResult } from 'npm:oxc-parser@0.49.0';
+// @deno-types="npm:@types/esquery@1.5.4"
+import type esquery from 'npm:esquery@1.6.0';
 
 export const EXTENSIONS = [
     'js',
@@ -41,7 +44,7 @@ export type WorkerEventInput = FindASTMatchesOptions & ExpandGlobsOptions;
 
 export interface FindASTMatchesOptions {
     file: string;
-    patterns: string[];
+    patterns: esquery.Selector[];
     context: ContextOptions;
     root: string;
 }

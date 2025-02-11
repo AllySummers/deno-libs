@@ -7,6 +7,8 @@ import type {
     FindASTMatchesOptions,
     FindASTMatchesOutput,
 } from './common.ts';
+// @deno-types="npm:@types/esquery@1.5.4"
+import esquery from 'npm:esquery@1.6.0';
 
 const scriptName = 'oxc-grep';
 
@@ -76,7 +78,7 @@ const getCLIArgs = (args: typeof cli) => {
     const [pattern, ...paths] = args.input;
     const {
         exclude = [],
-        pattern: patterns = [],
+        pattern: patterns = ['**/node_modules'],
         before,
         after,
         context,
@@ -106,8 +108,17 @@ const { patterns, paths, exclude, context, concurrency, dir } = getCLIArgs(
     cli,
 );
 
-if (!patterns.length) {
-    console.error('No pattern provided');
+const parsedPatterns = patterns.flatMap<esquery.Selector>((pattern) => {
+    try {
+        return esquery.parse(pattern);
+    } catch {
+        console.error(`Invalid pattern: ${pattern}`);
+    }
+
+    return [];
+});
+
+if (parsedPatterns.length !== patterns.length) {
     Deno.exit(1);
 }
 
@@ -152,7 +163,7 @@ try {
                 files,
                 (file) =>
                     pool.execute(
-                        { file, patterns, context, root: dir },
+                        { file, patterns: parsedPatterns, context, root: dir },
                         'findASTMatches',
                     ),
             )
