@@ -9,6 +9,8 @@ import type {
 } from './common.ts';
 // @deno-types="npm:@types/esquery@1.5.4"
 import esquery from 'npm:esquery@1.6.0';
+import { magenta } from 'jsr:@std/fmt@1.0.5/colors';
+import { relative } from 'jsr:@std/path@^1.0.8/relative';
 
 const scriptName = 'oxc-grep';
 
@@ -168,12 +170,17 @@ try {
                     ),
             )
         ) {
-            if (!('matches' in matchesOutput)) {
+            if (!matchesOutput || !('matches' in matchesOutput)) {
                 continue;
             }
 
             for (const match of matchesOutput.matches) {
-                console.log(match.content + `\n`);
+                console.log(magenta(relative(dir, match.filename)));
+                for (const contentMatch of match.matches) {
+                    console.log(contentMatch.content);
+                }
+
+                console.log();
             }
         }
     }

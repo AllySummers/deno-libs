@@ -1,6 +1,6 @@
 /// <reference types="npm:@oxc-project/types@0.49.0" />
 import { parseAsync, type Span } from 'npm:oxc-parser@0.49.0';
-import { basename, isGlob, relative, resolve } from 'jsr:@std/path@1.0.8';
+import { basename, isGlob, resolve } from 'jsr:@std/path@1.0.8';
 import { readAll } from 'jsr:@std/io@0.225.2/read-all';
 // @deno-types="npm:@types/esquery@1.5.4"
 import esquery from 'npm:esquery@1.6.0';
@@ -15,7 +15,7 @@ import {
     EXTENSIONS,
     type FindASTMatchesOptions,
     type FindASTMatchesOutput,
-    type ParsedMatch,
+    type ParsedContentMatch,
     type ReadASTResult,
     type WorkerEventInput,
     type WorkerEventOutput,
@@ -70,24 +70,22 @@ export async function* expandGlobs(
     }
 }
 
-export const parseMatch = (
-    filename: string,
+const renderMatch = (
     content: string,
-    node: Span,
+    start: number,
+    end: number,
     { before, after }: ContextOptions,
-    root: string,
-): ParsedMatch => {
+): ParsedContentMatch => {
     const lines = content.split('\n');
-    const startLineIndex = content.slice(0, node.start).split('\n').length - 1;
-    const endLineIndex = content.slice(0, node.end).split('\n').length - 1;
-    const startOffset = content.lastIndexOf('\n', node.start - 1) + 1;
-    const startCol = node.start - startOffset;
-    const endOffset = content.lastIndexOf('\n', node.end - 1) + 1;
-    const endCol = node.end - endOffset;
+    const startLineIndex = content.slice(0, start).split('\n').length - 1;
+    const endLineIndex = content.slice(0, end).split('\n').length - 1;
+    const startOffset = content.lastIndexOf('\n', start - 1) + 1;
+    const startCol = start - startOffset;
+    const endOffset = content.lastIndexOf('\n', end - 1) + 1;
+    const endCol = end - endOffset;
     const contextStart = Math.max(0, startLineIndex - before);
     const contextEnd = Math.min(lines.length - 1, endLineIndex + after);
-    let snippet = ansiStyles.magenta.open + relative(root, filename) +
-        ansiStyles.magenta.close + '\n';
+    let snippet = '';
     for (let i = contextStart; i <= contextEnd; i++) {
         const marker = i >= startLineIndex && i <= endLineIndex ? ':' : '-';
         let lineContent = lines[i];
@@ -116,7 +114,6 @@ export const parseMatch = (
             lineContent + '\n';
     }
     return {
-        filename,
         line: startLineIndex + 1,
         column: startCol,
         content: snippet.trim(),
@@ -142,28 +139,46 @@ const findASTMatchesTask: TaskAsyncFunction<
     FindASTMatchesOutput | undefined
 > = async (data) => {
     if (data) {
-        const { file, patterns, context, root } = data;
+        const { file, patterns, context } = data;
         const { content, ast } = await readAST(file);
-        const results: ParsedMatch[] = [];
-
+        const intervals: { start: number; end: number }[] = [];
         for (const pattern of patterns) {
+            // Use query to retrieve matching nodes instead of match
             const matches = esquery.match(
                 // @ts-ignore - this is an error if the types are available because we're using AST from a different parser so the types don't match,
                 // but we ignore it because sometimes the types will error in the deno language server
                 ast.program,
                 pattern,
             ) as Span[];
-
             for (const match of matches) {
-                results.push(parseMatch(file, content, match, context, root));
+                intervals.push({ start: match.start, end: match.end });
             }
         }
-
-        return {
-            matches: results,
-        };
+        intervals.sort((a, b) => a.start - b.start);
+        const merged: { start: number; end: number }[] = [];
+        for (const cur of intervals) {
+            const last = merged[merged.length - 1];
+            if (!last || cur.start > last.end) {
+                merged.push({ ...cur });
+            } else {
+                last.end = Math.max(last.end, cur.end);
+            }
+        }
+        const contentMatches = merged.map((interval) =>
+            renderMatch(
+                content,
+                interval.start,
+                interval.end,
+                context,
+            )
+        );
+        if (contentMatches.length) {
+            return { matches: [{ filename: file, matches: contentMatches }] };
+        }
+        // return { matches: [{ filename: file, matches: contentMatches }] };
     }
 };
+
 const expandGlobsTask: TaskAsyncFunction<
     ExpandGlobsOptions,
     ExpandGlobsOutput | undefined

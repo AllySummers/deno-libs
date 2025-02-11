@@ -18,11 +18,15 @@ export interface ContextOptions {
     after: number;
 }
 
-export interface ParsedMatch {
-    filename: string;
+export interface ParsedContentMatch {
     line: number;
     column: number;
     content: string;
+}
+
+export interface ParsedMatch {
+    filename: string;
+    matches: ParsedContentMatch[];
 }
 
 export interface ReadASTResult {
