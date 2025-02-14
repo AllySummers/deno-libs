@@ -3,5 +3,11 @@
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "denoland.vscode-deno",
     "editor.indentSize": "tabSize",
-    "editor.detectIndentation": false
+    "editor.detectIndentation": false,
+    "testing.gutterEnabled": true,
+    "deno.testing.args": [
+        "--allow-all",
+        "--no-check",
+        "--hide-stacktraces"
+    ]
 }

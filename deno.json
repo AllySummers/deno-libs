@@ -15,5 +15,11 @@
     },
     "lock": true,
     "nodeModulesDir": "none",
-    "vendor": false
+    "vendor": false,
+    "test": {
+        "include": [
+            "**/*.test.ts",
+            "**/*.test.tsx"
+        ]
+    }
 }

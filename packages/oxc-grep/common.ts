@@ -13,20 +13,12 @@ export const EXTENSIONS = [
     'mts',
 ];
 
-export interface ContextOptions {
-    before: number;
-    after: number;
-}
-
-export interface ParsedContentMatch {
-    line: number;
-    column: number;
-    content: string;
-}
-
-export interface ParsedMatch {
-    filename: string;
-    matches: ParsedContentMatch[];
+export interface OXCGrepOptions {
+    beforeContext: number;
+    afterContext: number;
+    printFilenames: boolean;
+    printLineNumbers: boolean;
+    color: boolean;
 }
 
 export interface ReadASTResult {
@@ -34,28 +26,37 @@ export interface ReadASTResult {
     ast: ParseResult;
 }
 
-export interface ExpandGlobsOptions {
-    paths: string[];
-    root: string;
-    exclude?: string[];
-}
-
-export interface ExpandGlobsOutput {
-    files: string[];
-}
-
-export type WorkerEventInput = FindASTMatchesOptions & ExpandGlobsOptions;
+export type WorkerEventInput = FindASTMatchesOptions;
 
 export interface FindASTMatchesOptions {
     file: string;
     patterns: esquery.Selector[];
-    context: ContextOptions;
+    options: OXCGrepOptions;
     root: string;
 }
 
-export interface FindASTMatchesOutput {
-    matches: ParsedMatch[];
+export type TextRange = [
+    start: number,
+    end: number,
+];
+
+export type LineContent = [lineNo: number, content: string];
+
+export interface ExtractedLinesAndContext {
+    beforeContext: LineContent[];
+    matchedLines: LineContent[];
+    afterContext: LineContent[];
 }
+
+export interface LineIndex {
+    index: number;
+    lineNo: number;
+}
+
+export interface FindASTMatchesOutput {
+    result?: string;
+}
+
 export type WorkerEventOutput =
-    | Partial<FindASTMatchesOutput & ExpandGlobsOutput>
+    | Partial<FindASTMatchesOutput>
     | undefined;

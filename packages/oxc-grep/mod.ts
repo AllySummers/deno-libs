@@ -1,16 +1,14 @@
 import meow from 'npm:meow@13.2.0';
 import { FixedThreadPool } from 'jsr:@poolifier/poolifier-web-worker@0.4.31';
 import { pooledMap } from 'jsr:@std/async@1.0.10/pool';
-import type {
-    ExpandGlobsOptions,
-    ExpandGlobsOutput,
-    FindASTMatchesOptions,
-    FindASTMatchesOutput,
+import {
+    EXTENSIONS,
+    type FindASTMatchesOptions,
+    type FindASTMatchesOutput,
 } from './common.ts';
 // @deno-types="npm:@types/esquery@1.5.4"
 import esquery from 'npm:esquery@1.6.0';
-import { magenta } from 'jsr:@std/fmt@1.0.5/colors';
-import { relative } from 'jsr:@std/path@^1.0.8/relative';
+import glob from 'npm:fast-glob@3.3.3';
 
 const scriptName = 'oxc-grep';
 
@@ -29,6 +27,9 @@ const cli = meow(
 		-C <number>, --context <number>          Number of lines to show before and after match
 		-c <number>, --concurrency <number>      Number of cores to use for parallel processing
 		-d <path>, --dir <path>                  Directory to search in (default: cwd)
+		-N, --no-line-number                     Do not show line numbers
+		-I, --no-filename                        Do not show filenames
+		--noColor                                Do not colorize output
 		-h, --help                               Show this help
 	`,
     {
@@ -62,6 +63,20 @@ const cli = meow(
                 type: 'number',
                 shortFlag: 'C',
             },
+            noLineNumber: {
+                type: 'boolean',
+                shortFlag: 'N',
+                default: false,
+            },
+            noFilename: {
+                type: 'boolean',
+                shortFlag: 'I',
+                default: false,
+            },
+            noColor: {
+                type: 'boolean',
+                default: false,
+            },
             concurrency: {
                 type: 'number',
                 shortFlag: 'c',
@@ -86,6 +101,9 @@ const getCLIArgs = (args: typeof cli) => {
         context,
         concurrency,
         dir,
+        noFilename,
+        noLineNumber,
+        noColor,
     } = args.flags;
 
     if (!pattern) {
@@ -103,10 +121,23 @@ const getCLIArgs = (args: typeof cli) => {
         },
         concurrency,
         dir,
+        printFilenames: !noFilename,
+        printLineNumbers: !noLineNumber,
+        noColor,
     };
 };
 
-const { patterns, paths, exclude, context, concurrency, dir } = getCLIArgs(
+const {
+    patterns,
+    paths,
+    exclude,
+    context,
+    concurrency,
+    dir,
+    printFilenames,
+    printLineNumbers,
+    noColor,
+} = getCLIArgs(
     cli,
 );
 
@@ -124,14 +155,41 @@ if (parsedPatterns.length !== patterns.length) {
     Deno.exit(1);
 }
 
+const globPaths = await Promise.all(paths.map(async (path) => {
+    try {
+        const { isDirectory } = await Deno
+            .stat(path);
+
+        if (isDirectory) {
+            return `${path}/**/*.{${EXTENSIONS.join(',')}}`;
+        }
+    } catch {
+        // ignored
+    }
+
+    return path;
+}));
+
+const files = await glob(globPaths, {
+    ignore: exclude,
+    concurrency: concurrency,
+});
+
+if (!files.length) {
+    console.error('No files found');
+    Deno.exit(1);
+}
+
+const maxConcurrency = Math.min(concurrency, files.length);
+
 const workerUrl = new URL('./worker.ts', import.meta.url);
 workerUrl.protocol = 'file:';
 
 const pool = new FixedThreadPool<
-    FindASTMatchesOptions | ExpandGlobsOptions,
-    FindASTMatchesOutput | ExpandGlobsOutput
+    FindASTMatchesOptions,
+    FindASTMatchesOutput
 >(
-    concurrency,
+    maxConcurrency,
     workerUrl,
     { errorEventHandler: console.error },
 );
@@ -142,47 +200,35 @@ if (!pool.info.started) {
 
 try {
     for await (
-        const globOutput of pooledMap(
+        const matchesOutput of pooledMap(
             concurrency,
-            paths,
-            (path) =>
-                pool.execute({
-                    paths: [path],
-                    exclude,
-                    root: dir,
-                }, 'expandGlobs'),
+            files,
+            (file) =>
+                pool.execute(
+                    {
+                        file,
+                        patterns: parsedPatterns,
+                        options: {
+                            beforeContext: context.before,
+                            afterContext: context.after,
+                            printFilenames,
+                            printLineNumbers,
+                            color: !noColor,
+                        },
+                        root: dir,
+                    },
+                    'findASTMatches',
+                ),
         )
     ) {
-        if (!('files' in globOutput)) {
+        if (
+            !matchesOutput || !('result' in matchesOutput) ||
+            !matchesOutput.result
+        ) {
             continue;
         }
 
-        const { files } = globOutput;
-
-        for await (
-            const matchesOutput of pooledMap(
-                concurrency,
-                files,
-                (file) =>
-                    pool.execute(
-                        { file, patterns: parsedPatterns, context, root: dir },
-                        'findASTMatches',
-                    ),
-            )
-        ) {
-            if (!matchesOutput || !('matches' in matchesOutput)) {
-                continue;
-            }
-
-            for (const match of matchesOutput.matches) {
-                console.log(magenta(relative(dir, match.filename)));
-                for (const contentMatch of match.matches) {
-                    console.log(contentMatch.content);
-                }
-
-                console.log();
-            }
-        }
+        console.log(matchesOutput.result);
     }
 } catch (error) {
     console.error(error);
