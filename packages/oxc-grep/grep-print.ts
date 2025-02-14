@@ -59,8 +59,11 @@ export const highlightMatchedRanges = (
         ? content
         : mergeRanges(ranges).reduceRight((acc, [start, end]) => {
             const before = acc.slice(0, start);
-            const highlighted = acc.slice(start, end).replace(/\S/g, (char) =>
-                bold(brightRed(char)));
+            const highlighted = acc.slice(start, end).replace(
+                /^(\s*)(.*?)(\s*)$/,
+                (_, leading: string, content: string, trailing: string) =>
+                    leading + bold(brightRed(content)) + trailing,
+            );
             const after = acc.slice(end);
 
             return before + highlighted + after;
