@@ -1,14 +1,13 @@
-import meow from 'npm:meow@13.2.0';
-import { FixedThreadPool } from 'jsr:@poolifier/poolifier-web-worker@0.4.31';
-import { pooledMap } from 'jsr:@std/async@1.0.10/pool';
+import meow from 'meow';
+import { FixedThreadPool } from '@poolifier/poolifier-web-worker';
+import { pooledMap } from '@std/async';
 import {
     EXTENSIONS,
     type FindASTMatchesOptions,
     type FindASTMatchesOutput,
 } from './common.ts';
-// @deno-types="npm:@types/esquery@1.5.4"
-import esquery from 'npm:esquery@1.6.0';
-import glob from 'npm:fast-glob@3.3.3';
+import esquery from 'esquery';
+import glob from 'fast-glob';
 
 const scriptName = 'oxc-grep';
 
@@ -29,6 +28,7 @@ const cli = meow(
 		-d <path>, --dir <path>                  Directory to search in (default: cwd)
 		-N, --no-line-number                     Do not show line numbers
 		-I, --no-filename                        Do not show filenames
+		-E, --printExact						 Print only the highlighted portions of the AST
 		--noColor                                Do not colorize output
 		-h, --help                               Show this help
 	`,
@@ -77,6 +77,11 @@ const cli = meow(
                 type: 'boolean',
                 default: false,
             },
+            printExact: {
+                type: 'boolean',
+                shortFlag: 'E',
+                default: false,
+            },
             concurrency: {
                 type: 'number',
                 shortFlag: 'c',
@@ -104,6 +109,7 @@ const getCLIArgs = (args: typeof cli) => {
         noFilename,
         noLineNumber,
         noColor,
+        printExact,
     } = args.flags;
 
     if (!pattern) {
@@ -124,6 +130,7 @@ const getCLIArgs = (args: typeof cli) => {
         printFilenames: !noFilename,
         printLineNumbers: !noLineNumber,
         noColor,
+        printExact,
     };
 };
 
@@ -137,6 +144,7 @@ const {
     printFilenames,
     printLineNumbers,
     noColor,
+    printExact,
 } = getCLIArgs(
     cli,
 );
@@ -214,6 +222,7 @@ try {
                             printFilenames,
                             printLineNumbers,
                             color: !noColor,
+                            printExact,
                         },
                         root: dir,
                     },

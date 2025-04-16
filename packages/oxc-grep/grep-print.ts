@@ -1,4 +1,4 @@
-import { bold, brightRed, green, magenta } from 'jsr:@std/fmt@1.0.5/colors';
+import { bold, brightRed, green, magenta } from '@std/fmt';
 import type {
     ExtractedLinesAndContext,
     LineContent,
@@ -51,20 +51,36 @@ export const getLineForIndex = (
         return index >= lineIndex && index < nextLineIndex;
     })?.lineNo;
 
+const colorNonWhitespace = (
+    _: string,
+    leading: string,
+    content: string,
+    trailing: string,
+) => leading + bold(brightRed(content)) + trailing;
+
+const excludeWhitespaceRegex = /^(\s*)(.*?)(\s*)$/;
+
 export const highlightMatchedRanges = (
     content: string,
     ranges: TextRange[],
+    { color }: Pick<
+        OXCGrepOptions,
+        'color'
+    >,
 ): string =>
     ranges.length === 0 || !content
         ? content
         : mergeRanges(ranges).reduceRight((acc, [start, end]) => {
             const before = acc.slice(0, start);
-            const highlighted = acc.slice(start, end).replace(
-                /^(\s*)(.*?)(\s*)$/,
-                (_, leading: string, content: string, trailing: string) =>
-                    leading + bold(brightRed(content)) + trailing,
-            );
             const after = acc.slice(end);
+
+            const selectedText = acc.slice(start, end);
+            const highlighted = color
+                ? selectedText.replace(
+                    excludeWhitespaceRegex,
+                    colorNonWhitespace,
+                )
+                : selectedText;
 
             return before + highlighted + after;
         }, content);
@@ -72,18 +88,23 @@ export const highlightMatchedRanges = (
 export const extractLinesAndContext = (
     content: string,
     ranges: TextRange[],
-    { beforeContext, afterContext, color }: Pick<
+    { beforeContext, afterContext, color, printExact }: Pick<
         OXCGrepOptions,
-        'beforeContext' | 'afterContext' | 'color'
+        'beforeContext' | 'afterContext' | 'color' | 'printExact'
     >,
 ): ExtractedLinesAndContext[] => {
-    const mergedRanges = mergeRanges(ranges);
-    const highlightedContent = color
-        ? highlightMatchedRanges(content, mergedRanges)
-        : content;
-    const splitContent = highlightedContent.split(/\r?\n/);
+    if (ranges.length === 0) return [];
 
-    return mergedRanges.map((range) => {
+    // When printExact is false, we can merge ranges as we'll be showing full lines
+    // When printExact is true, we need to keep individual ranges to show exact matches
+    const rangeList = printExact ? sortRanges(ranges) : mergeRanges(ranges);
+    const processedContent = color && !printExact
+        ? highlightMatchedRanges(content, rangeList, { color })
+        : content;
+
+    const splitContent = processedContent.split(/\r?\n/);
+
+    return rangeList.map((range) => {
         const lineIndices = getLineIndices(content);
         const startLine = getLineForIndex(lineIndices, range[0]) ?? 1;
         const endLine = getLineForIndex(lineIndices, range[1]) ??
@@ -94,6 +115,31 @@ export const extractLinesAndContext = (
             splitContent.length,
             endLine + afterContext,
         );
+
+        if (printExact) {
+            const matchedText = color
+                ? highlightMatchedRanges(content.slice(range[0], range[1]), [[
+                    0,
+                    range[1] - range[0],
+                ]], { color })
+                : content.slice(range[0], range[1]);
+
+            return {
+                beforeContext: splitContent
+                    .slice(beforeLines - 1, startLine - 1)
+                    .map<LineContent>((
+                        content,
+                        i,
+                    ) => [beforeLines + i, content]),
+                matchedLines: [[startLine, matchedText]],
+                afterContext: splitContent
+                    .slice(endLine, afterLines)
+                    .map<LineContent>((
+                        content,
+                        i,
+                    ) => [endLine + i + 1, content]),
+            };
+        }
 
         return {
             beforeContext: splitContent

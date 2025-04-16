@@ -1,7 +1,6 @@
-/// <reference types="npm:@oxc-project/types@0.49.0" />
-import type { ParseResult } from 'npm:oxc-parser@0.49.0';
-// @deno-types="npm:@types/esquery@1.5.4"
-import type esquery from 'npm:esquery@1.6.0';
+/// <reference types="@oxc-project/types" />
+import type { ParseResult } from 'oxc-parser';
+import type esquery from 'esquery';
 
 export const EXTENSIONS = [
     'js',
@@ -9,6 +8,7 @@ export const EXTENSIONS = [
     'cjs',
     'jsx',
     'ts',
+    'cts',
     'tsx',
     'mts',
 ];
@@ -18,6 +18,7 @@ export interface OXCGrepOptions {
     afterContext: number;
     printFilenames: boolean;
     printLineNumbers: boolean;
+    printExact: boolean;
     color: boolean;
 }
 

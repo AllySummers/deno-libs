@@ -1,5 +1,5 @@
-import { expect } from 'jsr:@std/expect@1.0.9';
-import { bold, brightRed } from 'jsr:@std/fmt@1.0.5/colors';
+import { expect } from '@std/expect';
+import { bold, brightRed } from '@std/fmt';
 import {
     extractLinesAndContext,
     getLineForIndex,
@@ -17,23 +17,40 @@ import type {
 Deno.test('highlightMatchedRanges', async ({ step }) => {
     await step('returns content unchanged when no ranges are given', () => {
         const content = 'hello, world!';
-        const result = highlightMatchedRanges(content, []);
+        const result = highlightMatchedRanges(content, [], {
+            color: false,
+        });
         expect(result).toStrictEqual(content);
     });
 
     await step('highlights single range', () => {
         const content = 'hello, world!';
         const ranges: TextRange[] = [[0, 5]];
-        const result = highlightMatchedRanges(content, ranges);
+        const result = highlightMatchedRanges(content, ranges, {
+            color: true,
+        });
         expect(result).toStrictEqual(
             `${bold(brightRed('hello'))}, world!`,
+        );
+    });
+
+    await step('does not colour output when color is false', () => {
+        const content = 'hello, world!';
+        const ranges: TextRange[] = [[0, 5]];
+        const result = highlightMatchedRanges(content, ranges, {
+            color: false,
+        });
+        expect(result).toStrictEqual(
+            `hello, world!`,
         );
     });
 
     await step('highlights multiple non-overlapping ranges', () => {
         const content = 'hello, world!';
         const ranges: TextRange[] = [[0, 5], [7, 12]];
-        const result = highlightMatchedRanges(content, ranges);
+        const result = highlightMatchedRanges(content, ranges, {
+            color: true,
+        });
         expect(result).toStrictEqual(
             `${bold(brightRed('hello'))}, ${bold(brightRed('world'))}!`,
         );
@@ -42,7 +59,9 @@ Deno.test('highlightMatchedRanges', async ({ step }) => {
     await step('highlights overlapping ranges', () => {
         const content = 'hello, world!';
         const ranges: TextRange[] = [[0, 5], [7, 12]];
-        const result = highlightMatchedRanges(content, ranges);
+        const result = highlightMatchedRanges(content, ranges, {
+            color: true,
+        });
         expect(result).toStrictEqual(
             `${bold(brightRed('hello'))}, ${bold(brightRed('world'))}!`,
         );
@@ -51,7 +70,9 @@ Deno.test('highlightMatchedRanges', async ({ step }) => {
     await step('handles ranges at the end of content', () => {
         const content = 'hello, world!';
         const ranges: TextRange[] = [[7, 13]];
-        const result = highlightMatchedRanges(content, ranges);
+        const result = highlightMatchedRanges(content, ranges, {
+            color: true,
+        });
         expect(result).toStrictEqual(
             `hello, ${bold(brightRed('world!'))}`,
         );
@@ -60,7 +81,9 @@ Deno.test('highlightMatchedRanges', async ({ step }) => {
     await step('handles multiple overlapping ranges with gaps', () => {
         const content = 'testing multiple ranges here';
         const ranges: TextRange[] = [[0, 7], [4, 16], [24, 28]];
-        const result = highlightMatchedRanges(content, ranges);
+        const result = highlightMatchedRanges(content, ranges, {
+            color: true,
+        });
         expect(result).toStrictEqual(
             `${bold(brightRed('testing multiple'))} ranges ${
                 bold(brightRed('here'))
@@ -71,14 +94,18 @@ Deno.test('highlightMatchedRanges', async ({ step }) => {
     await step('handles empty content', () => {
         const content = '';
         const ranges: TextRange[] = [[0, 0]];
-        const result = highlightMatchedRanges(content, ranges);
+        const result = highlightMatchedRanges(content, ranges, {
+            color: true,
+        });
         expect(result).toStrictEqual('');
     });
 
     await step('handles ranges that cover entire content', () => {
         const content = 'test';
         const ranges: TextRange[] = [[0, 4]];
-        const result = highlightMatchedRanges(content, ranges);
+        const result = highlightMatchedRanges(content, ranges, {
+            color: true,
+        });
         expect(result).toStrictEqual(bold(brightRed('test')));
     });
 });
@@ -301,15 +328,103 @@ Deno.test('extractLinesAndContext', async ({ step }) => {
     await step('returns empty array when no ranges are given', () => {
         const content = 'hello, world!';
         const ranges: TextRange[] = [];
-        const options = { beforeContext: 0, afterContext: 0, color: false };
+        const options = {
+            beforeContext: 0,
+            afterContext: 0,
+            color: false,
+            printExact: false,
+        };
         const result = extractLinesAndContext(content, ranges, options);
         expect(result).toStrictEqual([]);
+    });
+
+    await step('works with printExact and multiple ranges', () => {
+        const content = 'testing multiple ranges here';
+        const ranges: TextRange[] = [[0, 7], [4, 16], [24, 28]];
+        const result = extractLinesAndContext(content, ranges, {
+            color: false,
+            beforeContext: 0,
+            afterContext: 0,
+            printExact: true,
+        });
+
+        expect(result).toStrictEqual([
+            {
+                beforeContext: [],
+                matchedLines: [[1, 'testing']],
+                afterContext: [],
+            },
+            {
+                afterContext: [],
+                beforeContext: [],
+                matchedLines: [
+                    [
+                        1,
+                        'ing multiple',
+                    ],
+                ],
+            },
+            {
+                afterContext: [],
+                beforeContext: [],
+                matchedLines: [
+                    [
+                        1,
+                        'here',
+                    ],
+                ],
+            },
+        ]);
+    });
+
+    await step('works with printExact and multiple ranges and color', () => {
+        const content = 'testing multiple ranges here';
+        const ranges: TextRange[] = [[0, 7], [4, 16], [24, 28]];
+        const result = extractLinesAndContext(content, ranges, {
+            color: true,
+            beforeContext: 0,
+            afterContext: 0,
+            printExact: true,
+        });
+
+        expect(result).toStrictEqual([
+            {
+                beforeContext: [],
+                matchedLines: [[1, bold(brightRed('testing'))]],
+                afterContext: [],
+            },
+            {
+                afterContext: [],
+                beforeContext: [],
+                matchedLines: [
+                    [
+                        1,
+                        bold(brightRed('ing multiple')),
+                    ],
+                ],
+            },
+            {
+                afterContext: [],
+                beforeContext: [],
+                matchedLines: [
+                    [
+                        1,
+                        bold(brightRed('here')),
+                    ],
+                ],
+            },
+        ]);
     });
 
     await step('extracts single line with no context', () => {
         const content = 'hello, world!';
         const ranges: TextRange[] = [[0, 5]];
-        const options = { beforeContext: 0, afterContext: 0, color: false };
+        const options = {
+            beforeContext: 0,
+            afterContext: 0,
+            color: false,
+            printExact: false,
+        };
         const result = extractLinesAndContext(content, ranges, options);
         expect(result).toStrictEqual([
             {
@@ -320,10 +435,53 @@ Deno.test('extractLinesAndContext', async ({ step }) => {
         ]);
     });
 
+    await step('works with printExact and no color', () => {
+        const content = 'hello, world!';
+        const ranges: TextRange[] = [[0, 5]];
+        const options = {
+            beforeContext: 0,
+            afterContext: 0,
+            color: false,
+            printExact: true,
+        };
+        const result = extractLinesAndContext(content, ranges, options);
+        expect(result).toStrictEqual([
+            {
+                beforeContext: [],
+                matchedLines: [[1, 'hello']],
+                afterContext: [],
+            },
+        ]);
+    });
+
+    await step('works with printExact and color enabled', () => {
+        const content = 'hello, world!';
+        const ranges: TextRange[] = [[0, 5]];
+        const options = {
+            beforeContext: 0,
+            afterContext: 0,
+            color: true,
+            printExact: true,
+        };
+        const result = extractLinesAndContext(content, ranges, options);
+        expect(result).toStrictEqual([
+            {
+                beforeContext: [],
+                matchedLines: [[1, bold(brightRed('hello'))]],
+                afterContext: [],
+            },
+        ]);
+    });
+
     await step('extracts single line with before context', () => {
         const content = 'hello\nworld';
         const ranges: TextRange[] = [[6, 11]];
-        const options = { beforeContext: 1, afterContext: 0, color: false };
+        const options = {
+            beforeContext: 1,
+            afterContext: 0,
+            color: false,
+            printExact: false,
+        };
         const result = extractLinesAndContext(content, ranges, options);
         expect(result).toStrictEqual([
             {
@@ -337,7 +495,12 @@ Deno.test('extractLinesAndContext', async ({ step }) => {
     await step('extracts single line with after context', () => {
         const content = 'hello\nworld';
         const ranges: TextRange[] = [[0, 5]];
-        const options = { beforeContext: 0, afterContext: 1, color: false };
+        const options = {
+            beforeContext: 0,
+            afterContext: 1,
+            color: false,
+            printExact: false,
+        };
         const result = extractLinesAndContext(content, ranges, options);
         expect(result).toStrictEqual([
             {
@@ -351,7 +514,12 @@ Deno.test('extractLinesAndContext', async ({ step }) => {
     await step('extracts with ranges that span multiple lines', () => {
         const content = 'line1\nline2\nline3\nline4';
         const ranges: TextRange[] = [[0, 11]];
-        const options = { beforeContext: 0, afterContext: 0, color: false };
+        const options = {
+            beforeContext: 0,
+            afterContext: 0,
+            color: false,
+            printExact: false,
+        };
         const result = extractLinesAndContext(content, ranges, options);
         expect(result).toStrictEqual([
             {
@@ -374,7 +542,12 @@ Deno.test('extractLinesAndContext', async ({ step }) => {
             'line5',
         ].join('\n');
         const ranges: TextRange[] = [[0, 8], [5, 17]];
-        const options = { beforeContext: 0, afterContext: 0, color: false };
+        const options = {
+            beforeContext: 0,
+            afterContext: 0,
+            color: false,
+            printExact: false,
+        };
         const result = extractLinesAndContext(content, ranges, options);
         expect(result).toStrictEqual([
             {
@@ -415,7 +588,12 @@ Deno.test('extractLinesAndContext', async ({ step }) => {
                 [107, 113], // 'test()'
                 [286, 306], // 'export default test;'
             ];
-            const options = { beforeContext: 1, afterContext: 1, color: false };
+            const options = {
+                beforeContext: 1,
+                afterContext: 1,
+                color: false,
+                printExact: false,
+            };
             const result = extractLinesAndContext(content, ranges, options);
             const [expected1, expected2, expected3]:
                 ExtractedLinesAndContext[] = [
@@ -460,7 +638,12 @@ Deno.test('extractLinesAndContext', async ({ step }) => {
     await step('handles CRLF line endings', () => {
         const content = 'line1\r\nline2\r\nline3';
         const ranges: TextRange[] = [[0, 5], [7, 12]];
-        const options = { beforeContext: 0, afterContext: 0, color: false };
+        const options = {
+            beforeContext: 0,
+            afterContext: 0,
+            color: false,
+            printExact: false,
+        };
         const result = extractLinesAndContext(content, ranges, options);
         expect(result).toStrictEqual([
             {
@@ -484,7 +667,12 @@ Deno.test('extractLinesAndContext', async ({ step }) => {
             'line4',
         ].join('\n');
         const ranges: TextRange[] = [[0, 17]];
-        const options = { beforeContext: 1, afterContext: 1, color: false };
+        const options = {
+            beforeContext: 1,
+            afterContext: 1,
+            color: false,
+            printExact: false,
+        };
         const result = extractLinesAndContext(content, ranges, options);
         expect(result).toStrictEqual([
             {
@@ -504,7 +692,12 @@ Deno.test('extractLinesAndContext', async ({ step }) => {
     await step('handles color option correctly', () => {
         const content = 'hello, world!';
         const ranges: TextRange[] = [[0, 5]];
-        const options = { beforeContext: 0, afterContext: 0, color: true };
+        const options = {
+            beforeContext: 0,
+            afterContext: 0,
+            color: true,
+            printExact: false,
+        };
         const result = extractLinesAndContext(content, ranges, options);
         expect(result[0].matchedLines).toStrictEqual([[
             1,

@@ -1,13 +1,12 @@
-/// <reference types="npm:@oxc-project/types@0.49.0" />
-import { parseAsync, type Span } from 'npm:oxc-parser@0.49.0';
-import { relative } from 'jsr:@std/path@1.0.8';
-import { readAll } from 'jsr:@std/io@0.225.2/read-all';
-// @deno-types="npm:@types/esquery@1.5.4"
-import esquery from 'npm:esquery@1.6.0';
+/// <reference types="@oxc-project/types" />
+import { parseAsync, type Span } from 'oxc-parser';
+import { relative } from '@std/path';
+import { readAll } from '@std/io';
+import esquery from 'esquery';
 import {
     type TaskAsyncFunction,
     ThreadWorker,
-} from 'jsr:@poolifier/poolifier-web-worker@0.4.31';
+} from '@poolifier/poolifier-web-worker';
 import type {
     FindASTMatchesOptions,
     FindASTMatchesOutput,

@@ -1,7 +1,9 @@
 {
     "deno.enable": true,
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "denoland.vscode-deno",
+    "[typescript][typescriptreact][javascript][javascriptreact][yaml][json][jsonc][jsonl][markdown][html]": {
+        "editor.defaultFormatter": "denoland.vscode-deno"
+    },
     "editor.indentSize": "tabSize",
     "editor.detectIndentation": false,
     "testing.gutterEnabled": true,

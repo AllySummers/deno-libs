@@ -9,5 +9,19 @@
     },
     "exports": {
         ".": "./mod.ts"
+    },
+    "imports": {
+        "@oxc-project/types": "npm:@oxc-project/types@0.49.0",
+        "@poolifier/poolifier-web-worker": "jsr:@poolifier/poolifier-web-worker@0.4.31",
+        "@std/async": "jsr:@std/async@1.0.10/pool",
+        "@std/expect": "jsr:@std/expect@1.0.9",
+        "@std/fmt": "jsr:@std/fmt@1.0.5/colors",
+        "@std/io": "jsr:@std/io@0.225.2/read-all",
+        "@std/path": "jsr:@std/path@1.0.8",
+        "@types/esquery": "npm:@types/esquery@1.5.4",
+        "esquery": "npm:esquery@1.6.0",
+        "fast-glob": "npm:fast-glob@3.3.3",
+        "meow": "npm:meow@13.2.0",
+        "oxc-parser": "npm:oxc-parser@0.49.0"
     }
 }
