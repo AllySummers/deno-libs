@@ -1,7 +1,7 @@
 /// <reference types="@oxc-project/types" />
 import { parseAsync, type Span } from 'oxc-parser';
 import { relative } from '@std/path';
-import { readAll } from '@std/io';
+import { readAll } from '@std/io/read-all';
 import esquery from 'esquery';
 import {
     type TaskAsyncFunction,

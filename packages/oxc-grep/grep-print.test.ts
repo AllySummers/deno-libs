@@ -1,5 +1,5 @@
 import { expect } from '@std/expect';
-import { bold, brightRed } from '@std/fmt';
+import { bold, brightRed } from '@std/fmt/colors';
 import {
     extractLinesAndContext,
     getLineForIndex,

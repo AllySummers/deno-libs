@@ -1,4 +1,4 @@
-import { bold, brightRed, green, magenta } from '@std/fmt';
+import { bold, brightRed, green, magenta } from '@std/fmt/colors';
 import type {
     ExtractedLinesAndContext,
     LineContent,
