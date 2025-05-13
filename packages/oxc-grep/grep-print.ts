@@ -171,44 +171,46 @@ export const formatMatchOutput = (
     options: OXCGrepOptions,
 ): string =>
     [
-        ...(options.printFilenames
+        ...(options.printFilenames || options.filesWithMatches
             ? [
                 options.color ? bold(magenta(relativePath)) : relativePath,
             ]
             : []),
-        ...extracted
-            .map(
-                ({ beforeContext, matchedLines, afterContext }) =>
-                    [
-                        ...beforeContext.map(([lineNo, content]) =>
-                            options.printLineNumbers
-                                ? formatLineContent(
-                                    lineNo,
-                                    content,
-                                    options.color,
-                                    true,
-                                )
-                                : content
-                        ),
-                        ...matchedLines.map(([lineNo, content]) =>
-                            options.printLineNumbers
-                                ? formatLineContent(
-                                    lineNo,
-                                    content,
-                                    options.color,
-                                )
-                                : content
-                        ),
-                        ...afterContext.map(([lineNo, content]) =>
-                            options.printLineNumbers
-                                ? formatLineContent(
-                                    lineNo,
-                                    content,
-                                    options.color,
-                                    true,
-                                )
-                                : content
-                        ),
-                    ].join('\n'),
-            ),
+        ...(
+            options.filesWithMatches ? [] : extracted
+                .map(
+                    ({ beforeContext, matchedLines, afterContext }) =>
+                        [
+                            ...beforeContext.map(([lineNo, content]) =>
+                                options.printLineNumbers
+                                    ? formatLineContent(
+                                        lineNo,
+                                        content,
+                                        options.color,
+                                        true,
+                                    )
+                                    : content
+                            ),
+                            ...matchedLines.map(([lineNo, content]) =>
+                                options.printLineNumbers
+                                    ? formatLineContent(
+                                        lineNo,
+                                        content,
+                                        options.color,
+                                    )
+                                    : content
+                            ),
+                            ...afterContext.map(([lineNo, content]) =>
+                                options.printLineNumbers
+                                    ? formatLineContent(
+                                        lineNo,
+                                        content,
+                                        options.color,
+                                        true,
+                                    )
+                                    : content
+                            ),
+                        ].join('\n'),
+                )
+        ),
     ].join('\n');

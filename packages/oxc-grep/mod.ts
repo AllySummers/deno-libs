@@ -28,8 +28,9 @@ const cli = meow(
 		-d <path>, --dir <path>                  Directory to search in (default: cwd)
 		-N, --no-line-number                     Do not show line numbers
 		-I, --no-filename                        Do not show filenames
-		-E, --printExact						 Print only the highlighted portions of the AST
+		-E, --printExact                         Print only the highlighted portions of the AST
 		--noColor                                Do not colorize output
+        -l, --filesWithMatches                   Print only filenames with matches
 		-h, --help                               Show this help
 	`,
     {
@@ -92,6 +93,11 @@ const cli = meow(
                 shortFlag: 'd',
                 default: Deno.cwd(),
             },
+            filesWithMatches: {
+                type: 'boolean',
+                shortFlag: 'l',
+                default: false,
+            },
         },
     },
 );
@@ -110,6 +116,7 @@ const getCLIArgs = (args: typeof cli) => {
         noLineNumber,
         noColor,
         printExact,
+        filesWithMatches,
     } = args.flags;
 
     if (!pattern) {
@@ -131,6 +138,7 @@ const getCLIArgs = (args: typeof cli) => {
         printLineNumbers: !noLineNumber,
         noColor,
         printExact,
+        filesWithMatches,
     };
 };
 
@@ -145,9 +153,8 @@ const {
     printLineNumbers,
     noColor,
     printExact,
-} = getCLIArgs(
-    cli,
-);
+    filesWithMatches,
+} = getCLIArgs(cli);
 
 const parsedPatterns = patterns.flatMap<esquery.Selector>((pattern) => {
     try {
@@ -163,20 +170,21 @@ if (parsedPatterns.length !== patterns.length) {
     Deno.exit(1);
 }
 
-const globPaths = await Promise.all(paths.map(async (path) => {
-    try {
-        const { isDirectory } = await Deno
-            .stat(path);
+const globPaths = await Promise.all(
+    paths.map(async (path) => {
+        try {
+            const { isDirectory } = await Deno.stat(path);
 
-        if (isDirectory) {
-            return `${path}/**/*.{${EXTENSIONS.join(',')}}`;
+            if (isDirectory) {
+                return `${path}/**/*.{${EXTENSIONS.join(',')}}`;
+            }
+        } catch {
+            // ignored
         }
-    } catch {
-        // ignored
-    }
 
-    return path;
-}));
+        return path;
+    }),
+);
 
 const files = await glob(globPaths, {
     ignore: exclude,
@@ -193,13 +201,12 @@ const maxConcurrency = Math.min(concurrency, files.length);
 const workerUrl = new URL('./worker.ts', import.meta.url);
 workerUrl.protocol = 'file:';
 
-const pool = new FixedThreadPool<
-    FindASTMatchesOptions,
-    FindASTMatchesOutput
->(
+const pool = new FixedThreadPool<FindASTMatchesOptions, FindASTMatchesOutput>(
     maxConcurrency,
     workerUrl,
-    { errorEventHandler: console.error },
+    {
+        errorEventHandler: console.error,
+    },
 );
 
 if (!pool.info.started) {
@@ -223,6 +230,7 @@ try {
                             printLineNumbers,
                             color: !noColor,
                             printExact,
+                            filesWithMatches,
                         },
                         root: dir,
                     },

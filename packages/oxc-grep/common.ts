@@ -19,6 +19,7 @@ export interface OXCGrepOptions {
     printFilenames: boolean;
     printLineNumbers: boolean;
     printExact: boolean;
+    filesWithMatches: boolean;
     color: boolean;
 }
 
